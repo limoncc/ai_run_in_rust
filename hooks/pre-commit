@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "编译一遍确保没有问题"
+cargo build --release
+
+# 获取上面脚本的退出码
+exitCode="$?"
+exit $exitCode

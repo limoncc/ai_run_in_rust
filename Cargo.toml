@@ -6,11 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-
+# libtorch
+tch = "0.13.0"
 # web api 需要的库
 blake3 = "1.4.1"
 axum = "0.6.20"
 tracing = "0.1"
 tracing-subscriber = "0.2.0"
 tokio = { version = "1.0", features = ["full"] }
+# 处理数据
+serde = "1.0.188"
+# 命令行工具
+# clap = "4.4.3"
+# 静态资源打包
+#rust-embed = {version="8.0.0",features=['debug-embed']}
