@@ -14,5 +14,8 @@
 2、git的hooks的CI流程
 
 ```shell
+mkdir hooks
 git config 'core.hooksPath' hooks
 ```
+
+
