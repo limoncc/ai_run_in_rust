@@ -36,7 +36,7 @@ import requests
 import json
 import time
 
-url = "http://127.0.0.1:3000/users"
+url = "http://127.0.0.1:3000/infer"
 data = {"data":[1,2,3,4,5]}
 
 for a in range(10):
@@ -45,4 +45,6 @@ for a in range(10):
     response.status_code
     x = json.loads(response.text)
     print(x)
+
+0.123/pow(3,2)
 

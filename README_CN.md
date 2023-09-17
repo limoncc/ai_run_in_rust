@@ -18,4 +18,21 @@ mkdir hooks
 git config 'core.hooksPath' hooks
 ```
 
+还有如下问题需要解决  
+1、Rust 编译静态单体执行文件    
+2、clap 解析命令行参数  
+3、api文档问题  
+4、实用模型部署问题  
+5、tokenizer使用  
+6、图像读取问题
+
+更多进阶问题：model推理的三大工具  
+1、candle的使用  
+2、burn的使用  
+3、tract_onnx的使用
+
+
+torch.fx量化 、pytorch转ONNX技巧
+
+
 

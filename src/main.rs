@@ -15,6 +15,7 @@ use tch::Tensor;
 use tracing::{info, Level};
 use tracing_subscriber;
 // api库
+use axum::Json;
 use axum::Router;
 use axum::extract::{State};
 use axum::routing::{get, post};
@@ -22,10 +23,14 @@ use std::net::SocketAddr;
 // use std::time::Duration;
 
 // 处理数据
-use axum::Json;
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 
+// 文档库
+use utoipa::OpenApi;
+use utoipa::ToSchema;
+use utoipa_rapidoc::RapiDoc;
+// use utoipa_swagger_ui::SwaggerUi;
 // region 一、全面解决
 
 // featurs and issues ：
@@ -36,35 +41,51 @@ use serde::{Deserialize, Serialize};
 // 5、一次编译到处运行
 // 6、即将支持sdxl，baichaun2等大模型
 
+
 // 状态共享
 struct Ai {
     model: jit::CModule,
-    call_times:i64
+    call_times: i64,
 }
 
 impl Ai {
-    fn add(& mut self){
-        let old_times  = &self.call_times;
+    fn add(&mut self) {
+        let old_times = &self.call_times;
         self.call_times = old_times + 1
     }
-
 }
 
+#[utoipa::path(
+get,
+path = "/hello",
+responses((status = 200, description = "执行模型推导", body = str)),
+tag = "模型",
+)]
 async fn hello() -> &'static str {
     info!("Hello, World!");
     "Hello, World!"
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct AiInputs {
+    #[schema(example = json!([1,2,3,4,5]))]
     data: Vec<f32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct AiOutputs {
+    #[schema(example = json!([0.5774556, 0.42254442]))]
     result: Vec<f32>,
 }
 
+
+#[utoipa::path(
+post,
+path = "/infer",
+request_body = AiInputs,
+responses((status = 200, description = "执行模型推导", body = AiOutputs)),
+tag = "模型"
+)]
 async fn inference(State(ai): State<Arc<Mutex<Ai>>>, Json(payload): Json<AiInputs>) -> Json<AiOutputs> {
     let inputs = Tensor::from_slice(&payload.data);
     let outputs_tensor = ai.clone().lock().unwrap().model.forward_ts(&[inputs]).unwrap();
@@ -81,20 +102,36 @@ async fn inference(State(ai): State<Arc<Mutex<Ai>>>, Json(payload): Json<AiInput
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() {
+    #[derive(OpenApi)]
+    #[openapi(
+    paths(inference, hello),
+    components(schemas(AiInputs, AiOutputs)),
+    tags(
+    (name = "模型", description = "这是执行模型推断的API")
+    )
+    )]
+    struct ApiDoc;
+
+    // 建立文档
+    let apidoc = ApiDoc::openapi();
+    let doc = RapiDoc::with_openapi("/api-docs/openapi.json", apidoc).path("/docs");
+    // let doc = SwaggerUi::new("/docs").url("/api-docs/openapi.json", apidoc);
+
+
     // 解决日志问题
     tracing_subscriber::fmt().with_max_level(Level::INFO).with_target(false).init();
     info!("这里是 AI run in rust 项目");
-
     let model = jit::CModule::load("/Users/xiaobai/dev/ai_run_in_rust/data/model.jit").unwrap();
-    let ai = Arc::new(Mutex::new(Ai { model: model,call_times:0 }));
+    let ai = Arc::new(Mutex::new(Ai { model: model, call_times: 0 }));
     info!("初始化模型完毕！");
 
     // 建立路由
     let app = Router::new()
-        .route("/", get(hello))
-        .route("/users", post(inference))
-        .with_state(ai)
-        ;
+        .merge(doc)
+        .route("/",get(hello))
+        .route("/hello", get(hello))
+        .route("/infer", post(inference))
+        .with_state(ai);
 
     // 设置地址
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
